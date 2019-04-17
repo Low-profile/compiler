@@ -6,7 +6,7 @@ import scala.io.Source
 object test {
 
   case class Success[T](result: T, rest: InputState) {
-    def printR = print(result)
+    def printR = println(result)
   }
   case class Failure(label:String,msg: String, pos:ParserPosition){
     def printR= {
@@ -14,7 +14,9 @@ object test {
       val colPos = pos.col
       val linePos = pos.line
       val failureCaret =  " "*colPos + "^"+ msg
-      println("Line:", linePos, "Col:", colPos,"Error parsing", label, "\n", errorLine,"\n", failureCaret)
+      println("Line:" + linePos + " Col:" + colPos + " Error parsing " + label + "\n"
+        + errorLine + "\n"
+        + failureCaret)
     }
   }
 
@@ -411,36 +413,6 @@ object test {
     def pstring (str:String) =
       mapP (charListToStr) (sequence(str.toList.map(pchar)))
 
-    val parseLowercase = anyOf(('a' to 'z').toList)
-    val parseDigit = anyOf(('0' to '9').toList)
-
-    def parseThreeDigits = {
-      // create a parser that returns a tuple
-      def tupleParser =
-        parseDigit ~ parseDigit ~ parseDigit
-
-      // create a function that turns the tuple into a string
-      val transformTuple = (s: ((Char, Char), Char)) =>
-        s match {
-          case ((s1, s2), s3) => "" + s1 + s2 + s3
-        }
-
-      // use "map" to combine them
-      mapP(transformTuple)(tupleParser)
-
-    }
-
-    def parseThreeDigitsAsInt = {
-
-      // create a function that turns the tuple into a string
-      val transformStr = (s: String) =>
-        s.toInt
-
-      // use "map" to combine them
-      mapP(transformStr)(parseThreeDigits)
-
-    }
-
     def parsers = pchar('A'):: pchar('B'):: pchar('C') :: Nil
 
     def combined = sequence(parsers)
@@ -453,19 +425,9 @@ object test {
 
     def whitespaceChar = anyOf (' '::'\t'::'\n'::Nil)
 
-    def whitespace = many (whitespaceChar)
-
-    // define parser for one digit
-    def digit = anyOf(('0' to '9').toList)
-
-    def digitThenSemicolon = andThen(digit, opt(pchar (';')))
-
-    // define parser for one or more digits
-    def digits = many1 (digit)
+    def whitespace = many1 (whitespaceChar)
 
 
-    def parseAB =
-      (pchar('A') ~ pchar ('B')).setLabel("AB")
 
     val inputSource = Source.fromFile("source.c")
 
@@ -474,24 +436,32 @@ object test {
 
     val initState = InputState(inputList,Position(0,0))
 
-
-    def jUnescapedChar ={
-      val label = "char"
-      def trans(ch:Char) ={
-        ch != '\\' && ch != '\"'
-      }
-      satisfy (trans) (label)
-
+    def letter = {
+      val letters = ('a' to 'z').toList ::: ('A' to 'Z').toList
+      anyOf(letters)
     }
 
+    def digit = anyOf(('0' to '9').toList)
 
-    run(jUnescapedChar)(initState.copy(inputList=("i"::Nil))) match {
-      case Left(s) => s.printR
-      case Right(s) => s.printR
+    // define parser for one or more digits
+    def digits = many1 (digit)
+
+    def underline = pchar('_')
+
+    def id ={
+      andThen(letter, choice(List(letter,digit,underline)))
     }
 
+    def type_P = {
+      val type_literal = List("int","bool","double")
+      choice(type_literal.map(pstring(_))).setLabel("type")
+    }
 
-    run(jUnescapedChar)(initState) match {
+    def fun_def ={
+        andThen(type_P,whitespace)
+    }
+
+    run(fun_def)(initState) match {
       case Left(s) => s.printR
       case Right(s) => s.printR
     }
