@@ -2,8 +2,9 @@ import scala.language.implicitConversions
 
 import scala.io.Source
 
+import FunctionS.fun_def
 
-object test {
+object parser {
 
   case class Success[T](result: T, rest: InputState) {
     def printR = println(result)
@@ -48,6 +49,8 @@ object test {
 
       new Parser(innerFn,label)
     }
+
+
 
     //orElse
     def |(that: Parser[T]) = {
@@ -141,21 +144,10 @@ object test {
     // call inner function with input
     parser.innerFn(input)
 
-
-//  def run[T](parser: Parser[T])(input: String) = {
-//    // unwrap parser to get inner function
-//    val innerFn = parser.innerFn
-//    // call inner function with input
-//    innerFn(input)
-//  }
-
   def orElse[T](l: Parser[T], r: Parser[T]) = {
     l | r
   }
 
-//  def andThen[T,S](l: Parser[T], r: Parser[S]) = {
-//    l ~ r
-//  }
 
   def andThen[T,S](l: Parser[T], r: Parser[S]) = {
     def parse1(p1:T) ={
@@ -193,6 +185,9 @@ object test {
     bindP (composed) _
   }
 
+
+  // similar to unit type in monad.
+  // It returns a parser that does not consume the stream and just returns the supplied value.
   def returnP[T] (x:T) ={
     val label = "unknown"
     def innerFn(input:InputState) = {
@@ -210,31 +205,32 @@ object test {
 //    mapP(transformer)(tmp)
 //  }
 
-  def applyP[A,B] (x:Parser[A=>B]) (y:Parser[A]) = {
-    def parse1(x:A=>B) ={
-      def parse2(y:A) = {
-        returnP(x(y))
-      }
-      bindP(parse2)(y)
-    }
-    bindP(parse1)(x)
-  }
 
 
-  def lift2[A,B,C] (f:A=>B=>C)(x:Parser[A]) (y:Parser[B]) ={
-    val lift = returnP(f)
-    val trans = applyP(lift)(x)
-    applyP(trans)(y)
-  }
-
-
-  def parseStartsWith (str:String) (prefix:String) =
-    str.startsWith(prefix)
-
-
-  def startsWithP = lift2(parseStartsWith) _
+//  def parseStartsWith (str:String) (prefix:String) =
+//    str.startsWith(prefix)
+//
+//
+//  def startsWithP = lift2(parseStartsWith) _
 
   def sequence[A](parserList:List[Parser[A]]): Parser[List[A]] ={
+
+    def applyP[A,B] (x:Parser[A=>B]) (y:Parser[A]) = {
+      def parse1(x:A=>B) ={
+        def parse2(y:A) = {
+          returnP(x(y))
+        }
+        bindP(parse2)(y)
+      }
+      bindP(parse1)(x)
+    }
+
+    def lift2[A,B,C] (f:A=>B=>C)(x:Parser[A]) (y:Parser[B]) ={
+      val lift = returnP(f)
+      val trans = applyP(lift)(x)
+      applyP(trans)(y)
+    }
+
     def cons (head:A)(tail:List[A]) = head::tail
     def consP = lift2 (cons) _
 
@@ -323,8 +319,6 @@ object test {
     def transformerSome(z:T):Option[T] = Some(z)
     def transformerNone(z:T):Option[T] = None
 
-
-
     val some = mapP(transformerSome)(p)
     val none = mapP(transformerNone)(p)
     orElse(some,none)
@@ -348,86 +342,63 @@ object test {
     Parser(innerFn,label)
   }
 
-
-
-  def main(args: Array[String]): Unit = {
-
-//    def pchar(charToMatch: Char) = {
-//
-//      def innerFn (s: String) = {
-//        if (s.isEmpty)
-//          Left(Failure("No more input"))
-//        else {
-//          val first = s.head
-//          if (first == charToMatch) {
-//            val remaining = s.tail
-//            Right(Success(charToMatch, remaining))
-//          }
-//          else
-//            Left(Failure("Expecting " + charToMatch + ". Got " + first))
-//        }
-//      }
-//
-//      new Parser(innerFn)
-//
-//    }
-
-    def satisfy (predicate:Char=>Boolean) (label:String) ={
-      def innerFn(input:InputState) = {
-        val (remainingInput,charOpt) = input.nextChar
-        charOpt match{
-          case None => {
-            val err = "No more input"
+  def satisfy (predicate:Char=>Boolean) (label:String) ={
+    def innerFn(input:InputState) = {
+      val (remainingInput,charOpt) = input.nextChar
+      charOpt match{
+        case None => {
+          val err = "No more input"
+          val pos = input.toParserPosition
+          Left(Failure (label,err,pos))
+        }
+        case Some(first) =>{
+          if (predicate(first))
+            Right(Success (first,remainingInput))
+          else{
+            val err = "Unexpected '" + first +"'"
             val pos = input.toParserPosition
             Left(Failure (label,err,pos))
           }
-          case Some(first) =>{
-            if (predicate(first))
-              Right(Success (first,remainingInput))
-            else{
-              val err = "Unexpected '" + first +"'"
-              val pos = input.toParserPosition
-              Left(Failure (label,err,pos))
-            }
-          }
         }
       }
-      Parser(innerFn,label)
+    }
+    Parser(innerFn,label)
+  }
+
+  def pchar(charToMatch: Char) = {
+
+    def predicate(ch:Char) = {
+      ch == charToMatch
     }
 
-    def pchar(charToMatch: Char) = {
+    val label = "" + charToMatch
 
-      def predicate(ch:Char) = {
-        ch == charToMatch
-      }
+    satisfy(predicate)(label)
+  }
 
-      val label = "" + charToMatch
+  def anyOf(listOfChars: List[Char]) =
+    choice(listOfChars.map(pchar))
 
-      satisfy(predicate)(label)
-    }
+  // match a specific string
+  def pstring (str:String) =
+    mapP (charListToStr) (sequence(str.toList.map(pchar)))
 
-    def anyOf(listOfChars: List[Char]) =
-      choice(listOfChars.map(pchar))
+  def whitespaceChar = anyOf (' '::'\t'::'\n'::Nil)
+  def whitespace = {
+    val whitespace_chars = many (whitespaceChar)
+    def transformer(z:List[Char]) = z.mkString
 
-    // match a specific string
-    def pstring (str:String) =
-      mapP (charListToStr) (sequence(str.toList.map(pchar)))
+    mapP(transformer)(whitespace_chars)
+  }
+  def whitespaces = {
+    val whitespace_chars = many1 (whitespaceChar)
+    def transformer(z:List[Char]) = z.mkString
 
-    def parsers = pchar('A'):: pchar('B'):: pchar('C') :: Nil
-
-    def combined = sequence(parsers)
-
-    def parseABC = pstring ("ABC")
-
-    def manyA = many (pchar ('A'))
-
-    def manyAB = many(pstring ("AB"))
-
-    def whitespaceChar = anyOf (' '::'\t'::'\n'::Nil)
-
-    def whitespace = many1 (whitespaceChar)
+    mapP(transformer)(whitespace_chars)
+  }
 
 
+  def main(args: Array[String]): Unit = {
 
     val inputSource = Source.fromFile("source.c")
 
@@ -436,30 +407,7 @@ object test {
 
     val initState = InputState(inputList,Position(0,0))
 
-    def letter = {
-      val letters = ('a' to 'z').toList ::: ('A' to 'Z').toList
-      anyOf(letters)
-    }
 
-    def digit = anyOf(('0' to '9').toList)
-
-    // define parser for one or more digits
-    def digits = many1 (digit)
-
-    def underline = pchar('_')
-
-    def id ={
-      andThen(letter, choice(List(letter,digit,underline)))
-    }
-
-    def type_P = {
-      val type_literal = List("int","bool","double")
-      choice(type_literal.map(pstring(_))).setLabel("type")
-    }
-
-    def fun_def ={
-        andThen(type_P,whitespace)
-    }
 
     run(fun_def)(initState) match {
       case Left(s) => s.printR
