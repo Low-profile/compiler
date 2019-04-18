@@ -1,14 +1,22 @@
-case class Ast(nodeType:String,children: List[Ast])
+case class ExprAST(nodeType:String)
 {
-  def appendChild(child:Ast)
-  {
-    this.copy(children = children :+ child)
-  }
 
 }
 
+class StmtAST
+{
+
+  // public:
+
+
+  // virtual Value *codegen() = 0;
+
+  public:
+    virtual Value * codegen(std::map<std::string, AllocaInst *>& NamedValues) = 0;
+};
+
 /// FunctionAST - This class represents a function definition itself.
-class FunctionAST(name :String, retType:String, children: List[Ast], stmts:StmtAST) extends Ast("Function",children)
+class FunctionAST(name :String, retType:String, stmts:StmtAST) extends Ast("Function")
 {
 
   override def toString: String = ("function\n"
