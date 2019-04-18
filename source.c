@@ -1,1 +1,4 @@
-int main () {}
+int main () {
+   if ( 8 ) ; else ;
+}
+

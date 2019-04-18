@@ -1,15 +1,21 @@
-case class Ast(tok:String,children: List[Ast])
+case class Ast(nodeType:String,children: List[Ast])
 {
   def appendChild(child:Ast)
   {
     this.copy(children = children :+ child)
   }
+
 }
 
 /// FunctionAST - This class represents a function definition itself.
-class FunctionAST(name :String, retType:String, tok:String, children: List[Ast]) extends Ast(tok,children)
+class FunctionAST(name :String, retType:String, children: List[Ast], stmts:StmtAST) extends Ast("Function",children)
 {
-//  std::vector<std::tuple<std::string,std::string>> Args;
+
+  override def toString: String = ("function\n"
+    + "id: " + name + "\n"
+    + "retType: " + retType + " ")
+
+  //  std::vector<std::tuple<std::string,std::string>> Args;
 //  std::unique_ptr<StmtblockAST> Body;
 //
 //  public:
@@ -22,3 +28,8 @@ class FunctionAST(name :String, retType:String, tok:String, children: List[Ast])
 //  const std::string &getName() const { return Name; }
 
 }
+
+
+class StmtAST(tok:String, children: List[Ast]) extends Ast(tok,children)
+
+class ConditionStmtAST(tok:String, children: List[Ast]) extends StmtAST(tok,children)

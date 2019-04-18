@@ -1,27 +1,15 @@
 import parser._
-import Ast._
+import CharP._
+import expression._
+import Statement._
 
 object FunctionS {
 
-  def leftParen = pstring("(")
-
-  def rigthParen = pstring(")")
-
-  def leftCurly = pstring("{")
-
-  def rigthCurly = pstring("}")
 
   def letter = {
     val letters = ('a' to 'z').toList ::: ('A' to 'Z').toList
     anyOf(letters)
   }
-
-  def digit = anyOf(('0' to '9').toList)
-
-  // define parser for one or more digits
-  def digits = many1 (digit)
-
-  def underline = pchar('_')
 
   def id ={
     val first_char = letter.setLabel("id_first")
@@ -42,12 +30,16 @@ object FunctionS {
   }
 
   def fun_def ={
-    val def_list = List(type_P,whitespaces,id,whitespace,leftParen,whitespace,rigthParen,whitespace,leftCurly,whitespace,rigthCurly)
+    val def_list = List(type_P,whitespaces,id,whitespace,
+      leftParen,whitespace,rigthParen,whitespace,
+      leftCurly,whitespace,
+      stmt,
+      rigthCurly,whitespace)
     val func_string = sequence(def_list)
 
     def transformer(z:List[String]) = {
-//      new FunctionAST(z(0),z(1))
+      new FunctionAST(z(2),z(0),Nil,)
     }
-
+    mapP(transformer )(func_string)
   }
 }
