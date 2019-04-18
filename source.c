@@ -1,4 +1,5 @@
-int main () {
-   if ( 8 ) ; else ;
+int main()
+{
+    fdsx = 1 ;
+    return;
 }
-

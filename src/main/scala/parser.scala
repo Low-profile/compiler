@@ -37,6 +37,7 @@ object parser {
       bindP(parse1)(x)
     }
 
+    //lift function with 2 parameter
     def lift2[A, B, C](f: A => B => C)(x: Parser[A])(y: Parser[B]) = {
       val lift = returnP(f)
       val trans = applyP(lift)(x)
@@ -121,10 +122,11 @@ object parser {
 
     def transformerSome(z: T): Option[T] = Some(z)
 
-    def transformerNone(z: T): Option[T] = None
+    //def transformerNone(z: T): Option[T] = None
+    //val none = mapP(transformerNone)(p)
 
     val some = mapP(transformerSome)(p)
-    val none = mapP(transformerNone)(p)
+    val none = returnP[Option[T]](None)
     orElse(some, none)
   }
 
@@ -261,7 +263,7 @@ object parser {
       case Right(s) => s.printR
     }
 
-    //    println(run(digits)("aa111,23A"))
+//    println(run(opt(digits))(initState.copy(lines = List("aa111,23A"))))
 
   }
 

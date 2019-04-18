@@ -1,4 +1,5 @@
-import parser.{pchar, pstring}
+import FunctionS.letter
+import parser.{andThen, choice, digit, many, mapP, pchar, pstring}
 
 object CharP {
 
@@ -14,7 +15,21 @@ object CharP {
 
   def rigthBracket = pstring("]")
 
+  def equalP = pstring("=")
+
   def underline = pchar('_')
 
+  def id ={
+    val first_char = letter.setLabel("id_first")
+
+    val rest_chars = many(choice(List(letter,digit,underline))).setLabel("id_rest")
+
+    val ret = andThen(first_char, rest_chars)
+
+    def transformer(z:(Char,List[Char])) = {
+      (z._1 :: z._2).mkString
+    }
+    mapP(transformer)(ret)
+  }
 
 }

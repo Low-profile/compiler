@@ -11,18 +11,6 @@ object FunctionS {
     anyOf(letters)
   }
 
-  def id ={
-    val first_char = letter.setLabel("id_first")
-
-    val rest_chars = many(choice(List(letter,digit,underline))).setLabel("id_rest")
-
-    val ret = andThen(first_char, rest_chars)
-
-    def transformer(z:(Char,List[Char])) = {
-      (z._1 :: z._2).mkString
-    }
-    mapP(transformer)(ret)
-  }
 
   def type_P = {
     val type_literal = List("int","bool","double")
@@ -30,16 +18,15 @@ object FunctionS {
   }
 
   def fun_def ={
-    val def_list = List(type_P,whitespaces,id,whitespace,
-      leftParen,whitespace,rigthParen,whitespace,
-      leftCurly,whitespace,
-      stmt,
-      rigthCurly,whitespace)
-    val func_string = sequence(def_list)
+    val func_P = whitespace <~ type_P ~> whitespaces ~ id ~> whitespace ~>
+      leftParen ~> whitespace ~> rigthParen ~> whitespace ~>
+      leftCurly~> whitespace ~
+      many1(stmt) ~>
+      rigthCurly~> whitespace
 
-    def transformer(z:List[String]) = {
-      new FunctionAST(z(2),z(0),Nil,)
+    def transformer(z:((String,String),StmtAST)) = {
+      new FunctionAST(z._1._1,z._1._2,z._2)
     }
-    mapP(transformer )(func_string)
+    mapP(transformer )(func_P)
   }
 }

@@ -21,22 +21,28 @@ object expression {
 
   def minusSign = pstring("-")
 
+  def epsilon = returnP("")
 
 
-//  expr' | 	binop expr expr'
+  //  expr' : 	binop expr expr'
 //        | 	relop expr expr'
 //        | 	logical_op expr expr'
   //      |   epsilon
 
-  def epsilon = returnP("")
 
-  val expr_ :Parser[String] = {
-    val expr_List = binop ~ expr ~ expr_
-    def transformer(z:((String,String), String)) = {
-      z._1._1 + z._1._2 + z._2
+  val expr_ :Parser[Expr_AST] = {
+    val expr_List = binop ~> whitespace ~ expr ~ expr_ ~> whitespace
+    def transformer(z:((String,ExprAST), Expr_AST)) = {
+      new BinopAST(z._1._1, z._1._2, z._2)
     }
     val binopExpr  = mapP(transformer)(expr_List)
-    epsilon | binopExpr
+
+
+    def transEpsilon(z:String) = {
+      new EpsilonAST()
+    }
+
+    binopExpr.asInstanceOf[Parser[Expr_AST]] | mapP[Expr_AST,String](transEpsilon)(epsilon)
   }
 
   //  expr 	: 	'–' expr expr'
@@ -46,14 +52,13 @@ object expression {
   //        | 	intcon expr'
   //        |	  charcon expr'
   //        |	  stringcon expr'
-  val expr = {
-    val rest = expr_
-    val intcon = digits ~ rest
+  val expr : Parser[ExprAST] = {
+    val intcon = digits ~>whitespace ~ expr_ ~>whitespace
 
-    def transformer(z:(String,String)) = {
-      z._1 + z._2
+    def transformer(z:(String,Expr_AST)) = {
+      new NumberExprAST(z._1.toInt, z._2)
     }
 
-    mapP(transformer)(intcon)
+    mapP[ExprAST,(String,Expr_AST)](transformer)(intcon)
   }
 }
