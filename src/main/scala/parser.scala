@@ -2,8 +2,6 @@ import scala.language.implicitConversions
 
 import scala.io.Source
 
-import FunctionS.fun_def
-import expression._
 
 object parser {
 
@@ -23,7 +21,7 @@ object parser {
   }
 
   //list version andThen
-  def sequence[A](parserList: List[Parser[A]]): Parser[List[A]] = {
+  def  e[A](parserList: List[Parser[A]]): Parser[List[A]] = {
 
     def applyP[A, B](x: Parser[A => B])(y: Parser[A]) = {
       def parse1(x: A => B) = {
@@ -39,8 +37,8 @@ object parser {
 
     //lift function with 2 parameter
     def lift2[A, B, C](f: A => B => C)(x: Parser[A])(y: Parser[B]) = {
-      val lift = returnP(f)
-      val trans = applyP(lift)(x)
+      val unit = returnP(f)
+      val trans = applyP(unit)(x)
       applyP(trans)(y)
     }
 
@@ -170,8 +168,8 @@ object parser {
     l | r
   }
 
-  def between[A, B, C](p1: Parser[A])(p2: Parser[B])(p3: Parser[C]) =
-    omitRight(omitLeft(p1)(p2))(p3)
+//  def between[A, B, C](p1: Parser[A])(p2: Parser[B])(p3: Parser[C]) =
+//    omitRight(omitLeft(p1)(p2))(p3)
 
   def pchar(charToMatch: Char) = {
 
@@ -231,41 +229,6 @@ object parser {
   //  }
 
   def whitespaceChar = anyOf(' ' :: '\t' :: '\n' :: Nil)
-
-  def whitespace = {
-    val whitespace_chars = many(whitespaceChar)
-
-    def transformer(z: List[Char]) = z.mkString
-
-    mapP(transformer)(whitespace_chars).setLabel("space")
-  }
-
-  def whitespaces = {
-    val whitespace_chars = many1(whitespaceChar)
-
-    def transformer(z: List[Char]) = z.mkString
-
-    mapP(transformer)(whitespace_chars).setLabel("spaces")
-  }
-
-  def main(args: Array[String]): Unit = {
-
-    val inputSource = Source.fromFile("source.c")
-
-    val inputList = inputSource.getLines.toList
-    inputSource.close()
-
-    val initState = InputState(inputList, Position(0, 0))
-
-
-    run(fun_def)(initState) match {
-      case Left(s) => s.printR
-      case Right(s) => s.printR
-    }
-
-//    println(run(opt(digits))(initState.copy(lines = List("aa111,23A"))))
-
-  }
 
   def run[T](parser: Parser[T])(input: InputState) =
   // call inner function with input

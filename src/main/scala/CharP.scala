@@ -1,23 +1,39 @@
 import FunctionS.letter
-import parser.{andThen, choice, digit, many, mapP, pchar, pstring}
+import parser._
 
 object CharP {
 
   def leftParen = pstring("(")
 
-  def rigthParen = pstring(")")
+  def rightParen = pstring(")")
 
   def leftCurly = pstring("{")
 
-  def rigthCurly = pstring("}")
+  def rightCurly = pstring("}")
 
   def leftBracket = pstring("[")
 
-  def rigthBracket = pstring("]")
+  def rightBracket = pstring("]")
 
   def equalP = pstring("=")
 
   def underline = pchar('_')
+
+  def whitespace = {
+    val whitespace_chars = many(whitespaceChar)
+
+    def transformer(z: List[Char]) = z.mkString
+
+    mapP(transformer)(whitespace_chars).setLabel("space")
+  }
+
+  def whitespaces = {
+    val whitespace_chars = many1(whitespaceChar)
+
+    def transformer(z: List[Char]) = z.mkString
+
+    mapP(transformer)(whitespace_chars).setLabel("spaces")
+  }
 
   def id ={
     val first_char = letter.setLabel("id_first")
@@ -29,7 +45,8 @@ object CharP {
     def transformer(z:(Char,List[Char])) = {
       (z._1 :: z._2).mkString
     }
-    mapP(transformer)(ret)
+    mapP(transformer)(ret)  ~> whitespace
   }
 
+  def comma = pstring(",")
 }
