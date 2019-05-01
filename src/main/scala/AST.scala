@@ -1,9 +1,25 @@
-case class AST(nodeType:String)
+import llvmir.Types._
+import llvmir.{Function, Program}
 
-class VardeclAST(id:String, array :Option[ExprAST], nodeType:String = "vardecl") extends AST(nodeType) {
+import llvmir._
+import llvmir.Types._
+import llvmir.ILInstructions._
+import llvmir.AbstractILInstructions.OOP._
+import llvmir.OperationChains._
+
+
+case class AST(nodeType:String) {
+  def codegen(prog: Program, NamedValues: Map[String, Any]) = {
+  }
+}
+class VardeclAST(id:String, array :Option[Int], nodeType:String = "vardecl") extends AST(nodeType) {
   override def toString: String = (nodeType + "\n"
     + "id: " + id + "\n"
     + "argsOrArray: " + array + "\n")
+
+  def getVars ={
+    (id,array)
+  }
 }
 
 class VoidParamAST(nodeType:String = "voidparam") extends AST(nodeType) {
@@ -15,14 +31,21 @@ class ParamAST(typeS:String, id :String, arrayOrNot:Boolean, nodeType:String = "
     + "typeS: " + typeS + "\n"
     + "id: " + id + "\n"
     + "arrayOrNot: " + arrayOrNot + "\n")
+  def getParam = (typeS,id)
 }
 
-class ParamsAST( args:List[ParamAST], nodeType:String = "params") extends AST(nodeType) {
+class ParamsAST( args:List[ParamAST], isNull:Boolean, nodeType:String = "params") extends AST(nodeType) {
   override def toString: String = (nodeType + "\n"
     + "args: " + args + "\n")
+  def getParams() = if (isNull) Nil else args.map(_.getParam)
 }
 
-class FuncSignatureAST(name :String, retType:String,args:AST, nodeType:String = "funcSign") extends AST(nodeType) {
+class FuncSignatureAST(name :String, retType:String,args:ParamsAST, nodeType:String = "funcSign") extends AST(nodeType) {
+  def getRettype = retType match {
+    case "int" => TInt
+  }
+  def getName = name
+  def getParams = args.getParams()
   override def toString: String = (nodeType + "\n"
     + "args: " + args + "\n")
 }
@@ -31,11 +54,31 @@ class DeclAST(typeS:String, Vars :List[VardeclAST], nodeType:String = "decl") ex
   override def toString: String = (nodeType + "\n"
     + "typeS: " + typeS + "\n"
     + "Vars: " + Vars + "\n")
+
+  def codegen(func: Function, NamedValues: Map[String, Any]): Unit = {
+    for (var_ <- Vars){
+      val (a,b)= var_.getVars
+      b match {
+        case Some(value)=> {
+          a match {
+            case "int" => func.append(Alloca(TArray(value,TInt)))
+            case "bool" => func.append(Alloca(TArray(value,TBool)))
+          }
+        }
+        case None=>{
+          a match {
+            case "int" => func.append(Alloca(TInt))
+            case "bool" => func.append(Alloca(TBool))
+          }
+        }
+      }
+    }
+  }
 }
 
 class ExprAST(nodeType:String = "Expr") extends AST(nodeType)
 
-class Expr_AST(nodeType:String = "Expr") extends AST(nodeType)
+class Expr_AST(nodeType:String = "Expr_") extends AST(nodeType)
 
 class BinopAST(op: String, right: ExprAST, rest: Option[Expr_AST],nodeType:String = "Binop") extends Expr_AST(nodeType){
   override def toString: String = (nodeType + "\n"
@@ -119,6 +162,22 @@ class FunctionAST(funcSign :FuncSignatureAST, decls : List[DeclAST], stmts:List[
     + "funcSign: " + funcSign + "\n"
     + "decls: " + decls + "\n"
     + "stmts: {\n" + stmts + "}")
+
+  override def codegen(prog:Program, NamedValues:Map[String,Any]) ={
+    val args = funcSign.getParams.map(
+      s => s._1 match {
+        case "int" => (TInt,"int")
+        case "char" => (TChar,"char")
+      }
+    )
+    val func = prog.addStatic(funcSign.getName,args,funcSign.getRettype)
+    for (decl <- decls){
+      decl.codegen(func,NamedValues)
+    }
+    for (stmt <- stmts){
+      stmt.codegen(prog,NamedValues)
+    }
+  }
 
 }
 

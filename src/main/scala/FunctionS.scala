@@ -10,7 +10,7 @@ object FunctionS {
     val array = leftBracket ~> whitespace <~ intcon ~> whitespace ~> rightBracket ~> whitespace
     val ret = id ~ opt(array) ~> whitespace
 
-    def transRet(z: (String, Option[ExprAST])) = {
+    def transRet(z: (String, Option[Int])) = {
       new VardeclAST(z._1, z._2)
     }
 
@@ -39,7 +39,7 @@ object FunctionS {
     val voidS = pstring("void") ~> whitespace
 
     def transVoid(z: String) = {
-      new VoidParamAST()
+      new ParamsAST(Nil,true)
     }
     mapP(transVoid)(voidS)
   }
@@ -61,11 +61,11 @@ object FunctionS {
     val args = argP ~ many(comma <~ whitespace <~ argP)
 
     def transRet(z: (ParamAST, List[ParamAST])) = {
-      new ParamsAST(z._1 :: z._2)
+      new ParamsAST(z._1 :: z._2,false)
     }
 
-//    mapP(transRet)(args).asInstanceOf[Parser[AST]] |
-      void.asInstanceOf[Parser[AST]]
+    mapP(transRet)(args) |
+      void
   }
 
   def letter = {
@@ -75,7 +75,7 @@ object FunctionS {
 
 
   def typeP = {
-    val type_literal = List("int", "bool", "double")
+    val type_literal = List("int", "bool", "double","char")
     choice(type_literal.map(pstring(_))).setLabel("type")
   }
 
@@ -86,8 +86,8 @@ object FunctionS {
       parm_types ~>
       rightParen ~> whitespace
 
-    def transFuncSignature(z: ((String, String), AST)) = {
-      new FuncSignatureAST(z._1._1, z._1._2, z._2)
+    def transFuncSignature(z: ((String, String),ParamsAST)) = {
+      new FuncSignatureAST(z._1._2, z._1._1, z._2)
     }
 
     val funcSignatureP = mapP(transFuncSignature)(funcSignature)

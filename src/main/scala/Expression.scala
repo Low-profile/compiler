@@ -60,8 +60,6 @@ object Expression {
 
   //        |	  charcon expr'
   //        |	  stringcon expr'
-
-  //        | 	intcon expr'
   val intcon = {
     // define parser for one or more digits
     def digits = {
@@ -72,13 +70,25 @@ object Expression {
       mapP(transformer)(digits_ListChar)
 
     }
-    val intcon = digits ~> whitespace ~ expr_ ~>whitespace
+    val expr = digits ~> whitespace
 
-    def transformer(z:(String,Option[Expr_AST])) = {
-      new NumberExprAST(z._1.toInt, z._2)
+    def transformer(z:String) = {
+      z.toInt
     }
+    //      [ExprAST,(String,Option[Expr_AST])]
+    mapP(transformer)(expr).setLabel("Int")
+  }
 
-    mapP[ExprAST,(String,Option[Expr_AST])](transformer)(intcon).setLabel("Int")
+
+  //        | 	intcon expr'
+  val intcon_ = {
+    val intconS = intcon ~ expr_ ~>whitespace
+
+    def transformer(z:(Int,Option[Expr_AST])) = {
+      new NumberExprAST(z._1, z._2)
+    }
+//      [ExprAST,(String,Option[Expr_AST])]
+    mapP(transformer)(intconS).setLabel("Int")
   }
 
   //  expr 	: 	'–' expr expr'
@@ -141,7 +151,8 @@ object Expression {
 
 
   val expr : Parser[ExprAST] = {
-    intcon | minusExpr.asInstanceOf[Parser[ExprAST]] |
+    intcon_.asInstanceOf[Parser[ExprAST]] |
+      minusExpr.asInstanceOf[Parser[ExprAST]] |
       notExpr.asInstanceOf[Parser[ExprAST]] |
       parenExpr.asInstanceOf[Parser[ExprAST]] |
       variableExpr.asInstanceOf[Parser[ExprAST]]

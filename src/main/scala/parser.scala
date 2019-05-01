@@ -21,7 +21,7 @@ object parser {
   }
 
   //list version andThen
-  def  e[A](parserList: List[Parser[A]]): Parser[List[A]] = {
+  def sequence[A](parserList: List[Parser[A]]): Parser[List[A]] = {
 
     def applyP[A, B](x: Parser[A => B])(y: Parser[A]) = {
       def parse1(x: A => B) = {
