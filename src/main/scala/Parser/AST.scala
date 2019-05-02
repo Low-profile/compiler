@@ -273,24 +273,72 @@ class VariableExprAST(id: String, argsOrArray: Option[ExprAST], rest: Option[Exp
     + "rest: " + rest.toString)
 
   override def codegen(func: Function, NamedValues: Map[String, Identifier]): Identifier = {
-    val cur = NamedValues(id)
-    val dest = func.append(Load(cur))
-    rest match {
+    argsOrArray match {
+      case None => {
+        val cur = NamedValues(id)
+        val dest = func.append(Load(cur))
+        rest match {
+          case Some(expr) => {
+            expr match {
+              case rel :RelopAST => {
+                rel.codegen(dest,func,NamedValues)
+              }
+              case bin: BinopAST => {
+                bin.codegen(dest,func,NamedValues)
+              }
+            }
+            //          case log :LogicalopAST => log
+
+          }
+          case None => dest
+        }
+      }
       case Some(expr) => {
         expr match {
-          case rel :RelopAST => {
-            rel.codegen(dest,func,NamedValues)
+          case args:ArgsAST => {
+            val callFunc = NamedValues(id)
+            val args_ = args.getArgs(func,NamedValues)
+            val dest = func.append(Call(callFunc,args_))
+            rest match {
+              case Some(expr) => {
+                expr match {
+                  case rel :RelopAST => {
+                    rel.codegen(dest,func,NamedValues)
+                  }
+                  case bin: BinopAST => {
+                    bin.codegen(dest,func,NamedValues)
+                  }
+                }
+                //          case log :LogicalopAST => log
+
+              }
+              case None => dest
+            }
+
           }
-          case bin: BinopAST => {
-            bin.codegen(dest,func,NamedValues)
+          case _:ExprAST =>{
+            val cur = NamedValues(id)
+            val dest = func.append(Load(cur))
+            rest match {
+              case Some(expr) => {
+                expr match {
+                  case rel :RelopAST => {
+                    rel.codegen(dest,func,NamedValues)
+                  }
+                  case bin: BinopAST => {
+                    bin.codegen(dest,func,NamedValues)
+                  }
+                }
+                //          case log :LogicalopAST => log
+
+              }
+              case None => dest
+            }
           }
         }
-        //          case log :LogicalopAST => log
-
       }
-      case None => cur
-    }
 
+    }
   }
 }
 
@@ -343,17 +391,6 @@ class FunctionAST(funcSign: FuncSignatureAST, decls: List[DeclAST], stmts: List[
   override def codegen(prog: Program, NamedValues: Map[String, Identifier]): Map[String, Identifier] = {
 
 
-    def paramsGen(args: List[(String, String)], NamedValues: Map[String, Identifier]): Map[String, Identifier] = {
-      args match {
-        case head :: rest => {
-          val namedValues = NamedValues.updated(head._2, Null)
-          paramsGen(rest, namedValues)
-        }
-        case Nil => {
-          NamedValues
-        }
-      }
-    }
 
     val args = funcSign.getParams.map(
       s => s._1 match {
@@ -365,7 +402,6 @@ class FunctionAST(funcSign: FuncSignatureAST, decls: List[DeclAST], stmts: List[
         }
       }
     )
-    val namedValues = paramsGen(funcSign.getParams, NamedValues)
     val func = prog.addStatic(funcSign.getName, args, funcSign.getRettype)
 
     def declsGen(decls: List[DeclAST], NamedValues: Map[String, Identifier]): Map[String, Identifier] = {
@@ -380,18 +416,28 @@ class FunctionAST(funcSign: FuncSignatureAST, decls: List[DeclAST], stmts: List[
       }
     }
 
-//    def stmtsGen(decls: List[StmtAST], NamedValues: Map[String, Identifier]) = {
-//      decls match {
-//        case head :: rest => {
-//          val updatedNV = head.codegen(func, NamedValues)
-//          stmtsGen(rest, updatedNV)
-//        }
-//        case Nil => {
-//          NamedValues
-//        }
-//      }
-//    }
+    def paramsGen(args: List[(String, String)], NamedValues: Map[String, Identifier]): Map[String, Identifier] = {
+      args match {
+        case head :: rest => {
+          head._1 match{
+            case "int" => {
+              val id = func.append(Alloca(TInt),head._2)
+              func.append(Store(Const(0),id))
+              val updatedNV = NamedValues.updated(head._2, id)
+              paramsGen(rest, updatedNV)
+            }
+          }
 
+//          val namedValues = NamedValues.updated(head._2, Null)
+//          paramsGen(rest, namedValues)
+        }
+        case Nil => {
+          NamedValues
+        }
+      }
+    }
+
+    val namedValues = paramsGen(funcSign.getParams, NamedValues)
     val updatedNV = declsGen(decls, namedValues)
 //    stmtsGen(stmts, updatedNV)
     for(stmt <- stmts){
@@ -538,6 +584,17 @@ class CallAST(id: String, args: Option[List[ExprAST]], tok: String = "Call") ext
 class ArgsAST(args: Option[List[ExprAST]], tok: String = "args") extends ExprAST(tok) {
   override def toString: String = (nodeType + "\n"
     + "args: " + args + "\n")
+
+  def getArgs(func: Function, NamedValues: Map[String, Identifier]): List[Identifier] = {
+    args match {
+      case None => {
+        Nil
+      }
+      case Some(list_Expr) => {
+        list_Expr.map(_.codegen(func,NamedValues))
+      }
+    }
+  }
 }
 
 class BlockStmtAST(stmts: List[StmtAST], tok: String = "blockStmts") extends StmtAST(tok) {

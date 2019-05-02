@@ -1,7 +1,7 @@
 import Parser.FunctionS.prog
 import Parser.parser.{InputState, Position, run}
 
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import java.io.{FileOutputStream, PrintStream}
 
 import Parser.AST
@@ -9,19 +9,19 @@ import llvmir.Program
 import llvmir._
 import llvmir.Types._
 import llvmir.ILInstructions._
-import llvmir.AbstractILInstructions.OOP._
-import llvmir.OperationChains._
 
 object main {
   def main(args: Array[String]): Unit = {
 
-    val inputSource = Source.fromFile(args(0))
+    var inputSource = Source.fromFile("testcase/whileStmt.c")
+    if(args.nonEmpty)
+      inputSource = Source.fromFile(args(0))
     val inputList = inputSource.getLines.toList
     inputSource.close()
 
     val initState = InputState(inputList, Position(0, 0))
 
-    System.setOut(new PrintStream(new FileOutputStream("output.txt")))
+//    System.setOut(new PrintStream(new FileOutputStream("output.txt")))
 
     val progIR = new Program()
 
@@ -47,13 +47,16 @@ object main {
 //          t.codegen(progIR, namedValue)
 //        }
         progGen(s.result,namedValue)
-        s.printR
+//        s.printR
       }
     }
 
 
 
-    progIR.writeToFile("test.ll")
+    if (args.length > 1)
+      progIR.writeToFile(args(1))
+    else
+      progIR.writeToFile("test.ll")
 
   }
 
