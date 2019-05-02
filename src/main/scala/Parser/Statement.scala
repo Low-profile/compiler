@@ -1,5 +1,7 @@
-import parser._
+package Parser
+
 import CharP._
+import parser._
 import Expression.expr
 
 object Statement {

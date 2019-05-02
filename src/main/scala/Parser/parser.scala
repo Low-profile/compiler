@@ -1,7 +1,4 @@
-import scala.language.implicitConversions
-
-import scala.io.Source
-
+package Parser
 
 object parser {
 

@@ -1,12 +1,11 @@
-import FunctionS.prog
-import parser.{InputState, Position, run}
+import Parser.FunctionS.prog
+import Parser.parser.{InputState, Position, run}
 
 import scala.io.Source
 import java.io.{FileOutputStream, PrintStream}
 
+import Parser.AST
 import llvmir.Program
-
-
 import llvmir._
 import llvmir.Types._
 import llvmir.ILInstructions._

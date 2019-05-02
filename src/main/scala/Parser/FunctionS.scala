@@ -1,7 +1,9 @@
-import parser._
+package Parser
+
 import CharP._
-import Expression._
-import Statement._
+import parser._
+import Expression.intcon
+import Statement.{stmt,semicolon}
 
 object FunctionS {
 
@@ -68,10 +70,7 @@ object FunctionS {
       void
   }
 
-  def letter = {
-    val letters = ('a' to 'z').toList ::: ('A' to 'Z').toList
-    anyOf(letters)
-  }
+
 
 
   def typeP = {

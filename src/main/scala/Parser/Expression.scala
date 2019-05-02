@@ -1,6 +1,7 @@
-import parser._
+package Parser
 
-import CharP._
+import Parser.CharP._
+import Parser.parser.{Parser, many, many1, pstring, _}
 
 object Expression {
 

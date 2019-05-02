@@ -1,11 +1,8 @@
+package Parser
+
+import llvmir.ILInstructions._
 import llvmir.Types._
 import llvmir.{Function, Program}
-
-import llvmir._
-import llvmir.Types._
-import llvmir.ILInstructions._
-import llvmir.AbstractILInstructions.OOP._
-import llvmir.OperationChains._
 
 
 case class AST(nodeType: String) {

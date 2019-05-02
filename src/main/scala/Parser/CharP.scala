@@ -1,4 +1,5 @@
-import FunctionS.letter
+package Parser
+
 import parser._
 
 object CharP {
@@ -33,6 +34,11 @@ object CharP {
     def transformer(z: List[Char]) = z.mkString
 
     mapP(transformer)(whitespace_chars).setLabel("spaces")
+  }
+
+  def letter = {
+    val letters = ('a' to 'z').toList ::: ('A' to 'Z').toList
+    anyOf(letters)
   }
 
   def id ={
