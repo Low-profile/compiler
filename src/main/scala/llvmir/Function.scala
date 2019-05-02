@@ -27,6 +27,16 @@ class Function private[llvmir]( val name: String,
   def append(il: AbstractILOperation): Identifier = {
     append(singleAbsOpToChain(il))
   }
+
+  def append(ilGen: OpenILOperationPipeline, str:String): Identifier = {
+    val (ils, id) = ilGen(() => str)
+    abstractILs ++= ils
+    id
+  }
+  def append(il: AbstractILOperation, str:String): Identifier = {
+    append(singleAbsOpToChain(il),str)
+  }
+
   def append(il: AbstractILInstruction): Unit = {
     abstractILs += il
   }

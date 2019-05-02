@@ -6,8 +6,13 @@ object Statement {
 
   //  | 	'{' { stmt } '}'
   val blockStmt = {
-    val ret = leftCurly <~ whitespace <~ many(stmt) ~> whitespace ~> rightCurly ~> whitespace
-    ret
+    val ret = leftCurly <~ whitespace <~ many1(stmt) ~> whitespace ~> rightCurly ~> whitespace
+
+    def transRet(z:List[StmtAST]) = {
+      new BlockStmtAST(z)
+    }
+    mapP(transRet)(ret)
+
   }
 
   //  | 	';'
@@ -43,7 +48,7 @@ object Statement {
 
     val array = leftBracket ~> whitespace <~ expr ~> whitespace ~> rightBracket ~> whitespace
 
-    val assgP = id ~ opt(array) ~> equalP ~> whitespace ~ expr ~> semicolon ~> whitespace
+    val assgP = id ~ opt(array) ~> equalP ~> whitespace ~ expr ~>  whitespace
 
     def transassgP(z:((String,Option[ExprAST]),ExprAST)) = {
       new AssignAST(z._1._1, z._1._2, z._2)
@@ -85,11 +90,11 @@ object Statement {
 
 //    | 	for '(' [ assg ] ';' [ expr ] ';' [ assg ] ')' stmt
   val forStmt = {
-    val whileP = pstring("for")
+    val forP = pstring("for")
     val init = opt(assg)
     val cond = opt(expr)
     val step = opt(assg)
-    val condP = whileP <~ whitespace <~ leftParen <~ whitespace <~
+    val condP = forP <~ whitespace <~ leftParen <~ whitespace <~
       init  ~>  semicolon ~>  whitespace ~
         cond  ~>  semicolon ~>  whitespace ~
         step  ~> rightParen ~>  whitespace
@@ -115,10 +120,11 @@ object Statement {
     val ret =  mapP[StmtAST,String](transSemicolonP)(semicolon) |
       whileStmt.asInstanceOf[Parser[StmtAST]] |
       conditionStmt.setLabel("Condtion") |
-      assg.asInstanceOf[Parser[StmtAST]] |
+      (assg  ~> semicolon ~> whitespace).asInstanceOf[Parser[StmtAST]] |
       returnP.asInstanceOf[Parser[StmtAST]] |
       callP.asInstanceOf[Parser[StmtAST]] |
-      forStmt.asInstanceOf[Parser[StmtAST]]
+      forStmt.asInstanceOf[Parser[StmtAST]] |
+      blockStmt.asInstanceOf[Parser[StmtAST]]
 
 //    def transRet(z:String) = {
 //    }

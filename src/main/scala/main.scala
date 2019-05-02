@@ -15,7 +15,8 @@ import llvmir.OperationChains._
 
 object main {
   def main(args: Array[String]): Unit = {
-    val inputSource = Source.fromFile("source.c")
+
+    val inputSource = Source.fromFile(args(0))
     val inputList = inputSource.getLines.toList
     inputSource.close()
 
@@ -25,12 +26,28 @@ object main {
 
     val progIR = new Program()
 
+    val namedValue = Map.empty[String, Identifier]
+
+
+    def progGen(decls: List[AST], NamedValues: Map[String, Identifier]): Map[String, Identifier] = {
+      decls match {
+        case head :: rest => {
+          val updatedNV = head.codegen(progIR,NamedValues)
+          progGen(rest, updatedNV)
+        }
+        case Nil => {
+          NamedValues
+        }
+      }
+    }
+
     run(prog)(initState) match {
       case Left(s) => s.printR
       case Right(s) => {
-        for (t <- s.result) {
-          t.codegen(progIR, Map.empty[String, Any])
-        }
+//        for (t <- s.result) {
+//          t.codegen(progIR, namedValue)
+//        }
+        progGen(s.result,namedValue)
         s.printR
       }
     }
